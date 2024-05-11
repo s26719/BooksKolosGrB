@@ -1,3 +1,4 @@
+using KolosGrB.DTOs;
 using KolosGrB.Exceptions;
 using KolosGrB.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -31,4 +32,11 @@ public class BooksController : ControllerBase
             return StatusCode(500, $"Wystąpił błąd: {ex.Message}");
         }
     }
+
+    [HttpPost]
+    public async Task<IActionResult> AddBookWithAuthors(BookToAddDto bookToAddDto)
+    {
+        return Ok(await _booksService.AddBookWithAuthorsAsync(bookToAddDto));
+    }
+    
 }

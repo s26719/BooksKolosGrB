@@ -52,4 +52,47 @@ public class BooksRepository : IBooksRepository
             }
         }
     }
+
+    public async Task<int> AddBookWithAuthorsAsync(BookToAddDto bookToAddDto)
+    {
+        using var con = new SqlConnection(connectionstring);
+        await con.OpenAsync();
+
+        using var transaction = (SqlTransaction)await con.BeginTransactionAsync();
+        try
+        {
+            int idBook;
+            // dodaje ksiazke do bazy i pobieram jej Id
+            var query1 = "Insert into books(title) output inserted.PK Values(@title)";
+            using (var cmd = new SqlCommand(query1, con, transaction))
+            {
+                cmd.Parameters.AddWithValue("@title", bookToAddDto.title);
+                idBook = (int)await cmd.ExecuteScalarAsync();
+            }
+            // przypisuje autora do ksiazki
+            foreach (var authorDto in bookToAddDto.authors)
+            {
+                var query2 = "Insert into books_authors(FK_book, FK_author) values (@idbook, (SELECT a.PK from authors a where first_name = @firstname and last_name = @lastname))";
+                using (var cmd = new SqlCommand(query2, con, transaction))
+                {
+                    cmd.Parameters.AddWithValue("@idbook", idBook);
+                    cmd.Parameters.AddWithValue("@firstname", authorDto.firstName);
+                    cmd.Parameters.AddWithValue("@lastName", authorDto.lastName);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+
+            await transaction.CommitAsync();
+            return idBook;
+
+
+        }
+        catch (Exception e)
+        {
+            await transaction.RollbackAsync();
+            Console.WriteLine(e);
+            throw;
+        }
+    }
+    
 }
