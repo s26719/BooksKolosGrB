@@ -27,18 +27,23 @@ public class BooksRepository : IBooksRepository
             using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
-                BookWithAuthorsDto bookWithAuthorsDto1 = new();
-               var listaautorow =  bookWithAuthorsDto1.authors = new()
-                {
-                    reader["first_name"].ToString(),
-                    reader["last_name"].ToString()
-                };
+
                 BookWithAuthorsDto bookWithAuthorsDto = new()
                 {
                     id = int.Parse(reader["PK"].ToString()),
                     title = reader["title"].ToString(),
-                    authors = listaautorow
+                    authors = new List<AuthorsDto>()
                 };
+
+                do
+                {
+                    var authorDto = new AuthorsDto()
+                    {
+                        firstName = reader["first_name"].ToString(),
+                        lastName = reader["last_name"].ToString()
+                    };
+                    bookWithAuthorsDto.authors.Add(authorDto);
+                } while (await reader.ReadAsync());
                 return bookWithAuthorsDto;
             }
             else
