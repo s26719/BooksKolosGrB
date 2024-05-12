@@ -10,8 +10,9 @@ public class BooksRepository : IBooksRepository
 
     public BooksRepository(IConfiguration configuration)
     {
-        connectionstring = configuration.GetConnectionString("Defaultconnection");
+        connectionstring = configuration.GetConnectionString("DefaultConnection");
     }
+
 
     public async Task<BookWithAuthorsDto> GetBooksAsync(int id)
     {
@@ -53,6 +54,7 @@ public class BooksRepository : IBooksRepository
         }
     }
 
+
     public async Task<int> AddBookWithAuthorsAsync(BookToAddDto bookToAddDto)
     {
         using var con = new SqlConnection(connectionstring);
@@ -68,6 +70,23 @@ public class BooksRepository : IBooksRepository
             {
                 cmd.Parameters.AddWithValue("@title", bookToAddDto.title);
                 idBook = (int)await cmd.ExecuteScalarAsync();
+
+            }
+            //sprawdzam czy istnieje autor
+            foreach (var authorDto in bookToAddDto.authors)
+            {
+                var query3 = "Select count(*) from authors where first_name = @firstname and last_name = @lastname";
+                using (var cmd = new SqlCommand(query3, con, transaction))
+                {
+                    cmd.Parameters.AddWithValue("@firstname", authorDto.firstName);
+                    cmd.Parameters.AddWithValue("@lastname", authorDto.lastName);
+                    var idcount = (int)await cmd.ExecuteScalarAsync();
+                    if (idcount == 0)
+                    {
+                        throw new NotFoundException("nie ma takiego aktora");
+                    }
+                }
+                
             }
             // przypisuje autora do ksiazki
             foreach (var authorDto in bookToAddDto.authors)
@@ -77,15 +96,14 @@ public class BooksRepository : IBooksRepository
                 {
                     cmd.Parameters.AddWithValue("@idbook", idBook);
                     cmd.Parameters.AddWithValue("@firstname", authorDto.firstName);
-                    cmd.Parameters.AddWithValue("@lastName", authorDto.lastName);
+                    cmd.Parameters.AddWithValue("@lastname", authorDto.lastName);
                     await cmd.ExecuteNonQueryAsync();
+
                 }
             }
 
             await transaction.CommitAsync();
             return idBook;
-
-
         }
         catch (Exception e)
         {

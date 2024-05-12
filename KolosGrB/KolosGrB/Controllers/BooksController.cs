@@ -36,7 +36,18 @@ public class BooksController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AddBookWithAuthors(BookToAddDto bookToAddDto)
     {
-        return Ok(await _booksService.AddBookWithAuthorsAsync(bookToAddDto));
+        try
+        {
+            var blad = await _booksService.AddBookWithAuthorsAsync(bookToAddDto);
+            return Ok(blad);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Wystąpił błąd: {ex.Message}");
+        }
     }
-    
 }
